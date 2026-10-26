@@ -8,7 +8,7 @@ include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = CCAster
 
-CCAster_FILES = Tweak.xm os_check.m
+CCAster_FILES = Tweak.xm
 CCAster_FRAMEWORKS = UIKit CoreFoundation CFNetwork QuartzCore CoreImage
 CCAster_PRIVATE_FRAMEWORKS = ControlCenterServices SpringBoardUIServices
 CCAster_CFLAGS = -fobjc-arc

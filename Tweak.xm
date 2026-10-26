@@ -8,6 +8,14 @@
 #import <objc/message.h>
 #import <objc/runtime.h>
 
+// 运行时版本判断，替代 @available() —— L1ghtmann clang-11 工具链未附带 libclang_rt，
+// 而 @available() 会在链接期依赖缺失的 ___isOSVersionAtLeast 运行时符号。
+static BOOL CCAIsOSAtLeast(NSInteger major, NSInteger minor) {
+    NSOperatingSystemVersion v = [[NSProcessInfo processInfo] operatingSystemVersion];
+    if (v.majorVersion != major) return v.majorVersion > major;
+    return v.minorVersion >= minor;
+}
+
 static CFStringRef const kCCAPrefsDomain = CFSTR("com.futur3sn0w.ccaster.preferences");
 static NSString *const kCCAReloadNotification = @"com.futur3sn0w.ccaster/ReloadPrefs";
 
@@ -1996,10 +2004,13 @@ static void CCAUpdateSliderGlyphColor(UIView *slider, float value, BOOL animate)
         nativeGlyph = [UIImage systemImageNamed:symbolName withConfiguration:symbolConfiguration];
     } else {
         symbolState = @"brightness.variable";
-        if (@available(iOS 16.0, *)) {
+        if (CCAIsOSAtLeast(16, 0)) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunguarded-availability-new"
             nativeGlyph = [UIImage systemImageNamed:@"sun.max.fill"
                                        variableValue:variableValue
                                     withConfiguration:symbolConfiguration];
+#pragma clang diagnostic pop
         }
     }
     if (!nativeGlyph) {
@@ -12440,7 +12451,7 @@ static UIView *CCAConnectivityTransitionHostForWindow(UIWindow *window) {
         gCCAConnectivityTransitionWindow.hidden = NO;
     } else {
         UIWindow *transitionWindow = nil;
-        if (@available(iOS 13.0, *)) {
+        if (CCAIsOSAtLeast(13, 0)) {
             if (window.windowScene) transitionWindow = [[UIWindow alloc] initWithWindowScene:window.windowScene];
         }
         if (!transitionWindow) transitionWindow = [[UIWindow alloc] initWithFrame:UIScreen.mainScreen.bounds];
@@ -13101,7 +13112,7 @@ static UIView *CCAMediaTransitionHostForWindow(UIWindow *sourceWindow) {
         return gCCAMediaTransitionHost;
     }
     UIWindow *window = nil;
-    if (@available(iOS 13.0, *)) {
+    if (CCAIsOSAtLeast(13, 0)) {
         if (sourceWindow.windowScene) window = [[UIWindow alloc] initWithWindowScene:sourceWindow.windowScene];
     }
     if (!window) window = [[UIWindow alloc] initWithFrame:UIScreen.mainScreen.bounds];
