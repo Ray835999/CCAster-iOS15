@@ -10,16 +10,25 @@ on:
   push:
     branches: [ main, master ]
 
+# iOS tweak 编译不需要 macOS；用 ubuntu runner 避免 macOS 排队（新/免费账号常无限排队）
 jobs:
   build:
-    runs-on: macos-13
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Install host tools
         run: |
-          brew install ldid xz || true
+          sudo apt-get update -qq
+          sudo apt-get install -y fakeroot dpkg-dev git curl xz-utils \
+            build-essential libplist-dev libssl-dev libtinfo5
+          # 编译 ldid（Linux 上给 iOS 二进制签名，Theos 打包必需）
+          git clone --recursive --depth 1 https://github.com/ProcursusTeam/ldid.git /tmp/ldid
+          cd /tmp/ldid
+          make
+          sudo cp ldid /usr/local/bin/
+          ldid --version
 
       - name: Install Theos
         run: |
