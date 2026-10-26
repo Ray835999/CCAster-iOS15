@@ -13,6 +13,15 @@ CCAster_FRAMEWORKS = UIKit CoreFoundation CFNetwork QuartzCore CoreImage
 CCAster_PRIVATE_FRAMEWORKS = ControlCenterServices SpringBoardUIServices
 CCAster_CFLAGS = -fobjc-arc
 
+# L1ghtmann clang-11 工具链不会自动链接 clang 运行时，需显式链入 libclang_rt.ios.a
+# 该库提供 ___isOSVersionAtLeast（Tweak.xm 中 @available(...) 语法依赖的运行时符号）
+_CLANG_RT := $(shell find $(THEOS)/toolchain -name "libclang_rt.ios.a" 2>/dev/null | head -1)
+ifeq ($(_CLANG_RT),)
+CCAster_LDFLAGS =
+else
+CCAster_LDFLAGS = -L$(dir $(_CLANG_RT)) -lclang_rt.ios
+endif
+
 INSTALL_TARGET_PROCESSES = SpringBoard
 
 include $(THEOS_MAKE_PATH)/tweak.mk
