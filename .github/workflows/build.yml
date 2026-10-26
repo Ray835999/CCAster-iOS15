@@ -46,12 +46,6 @@ jobs:
           mkdir -p "$HOME/theos/toolchain"
           tar -xf /tmp/tc.tar.xz -C "$HOME/theos/toolchain"
           test -x "$HOME/theos/toolchain/linux/iphone/bin/clang" && echo "toolchain ok"
-          echo "=== clang 版本 ==="
-          "$HOME/theos/toolchain/linux/iphone/bin/clang" --version
-          echo "=== 工具链内 clang_rt / compiler_rt 相关库 ==="
-          find "$HOME/theos/toolchain" \( -name "*clang_rt*" -o -name "*compiler_rt*" \) 2>/dev/null | sort
-          echo "=== clang 资源目录下的 darwin lib ==="
-          ls -la "$HOME/theos/toolchain/linux/iphone/lib/clang"/*/lib/darwin/ 2>/dev/null | head -40
 
       - name: Install iPhoneOS SDK
         run: |
