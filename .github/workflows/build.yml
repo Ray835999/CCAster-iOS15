@@ -23,10 +23,13 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y fakeroot dpkg-dev git curl xz-utils \
             build-essential libplist-dev libssl-dev
-          # Theos 的 Linux 工具链 clang 可能需要 libtinfo.so.5；24.04 只有 .6，做兼容软链
-          if [ ! -e /usr/lib/x86_64-linux-gnu/libtinfo.so.5 ]; then
-            sudo ln -sf /usr/lib/x86_64-linux-gnu/libtinfo.so.6 /usr/lib/x86_64-linux-gnu/libtinfo.so.5 || true
-          fi
+          # Theos 的 Linux 工具链 clang 可能需要 libtinfo.so.5 / libncurses.so.5；
+          # 24.04 只有 .6，做兼容软链（不存在时才建，避免覆盖）
+          for lib in libtinfo libncurses; do
+            if [ ! -e /usr/lib/x86_64-linux-gnu/${lib}.so.5 ]; then
+              sudo ln -sf /usr/lib/x86_64-linux-gnu/${lib}.so.6 /usr/lib/x86_64-linux-gnu/${lib}.so.5 || true
+            fi
+          done
           # 编译 ldid（Linux 上给 iOS 二进制签名，Theos 打包必需）
           git clone --recursive --depth 1 https://github.com/ProcursusTeam/ldid.git /tmp/ldid
           cd /tmp/ldid
@@ -34,9 +37,15 @@ jobs:
           sudo cp ldid /usr/local/bin/
           command -v ldid && echo "ldid ready"
 
-      - name: Install Theos
+      - name: Install Theos + Linux toolchain
         run: |
           git clone --recursive --depth 1 https://github.com/theos/theos.git "$HOME/theos"
+          # Theos 新版 Linux 工具链来自 L1ghtmann/llvm-project（旧 theos/toolchain 已废弃）
+          curl -fsSL -o /tmp/tc.tar.xz \
+            "https://github.com/L1ghtmann/llvm-project/releases/latest/download/iOSToolchain-x86_64.tar.xz"
+          mkdir -p "$HOME/theos/toolchain"
+          tar -xf /tmp/tc.tar.xz -C "$HOME/theos/toolchain"
+          test -x "$HOME/theos/toolchain/linux/iphone/bin/clang" && echo "toolchain ok"
 
       - name: Install iPhoneOS SDK
         run: |
