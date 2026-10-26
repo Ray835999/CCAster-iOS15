@@ -1,0 +1,48 @@
+name: Build CCAster (iOS 15 port)
+
+on:
+  workflow_dispatch:
+    inputs:
+      sdk:
+        description: 'iPhoneOS SDK version to build against'
+        required: false
+        default: '16.5'
+  push:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: macos-13
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install host tools
+        run: |
+          brew install ldid xz || true
+
+      - name: Install Theos
+        run: |
+          git clone --recursive --depth 1 https://github.com/theos/theos.git "$HOME/theos"
+
+      - name: Install iPhoneOS SDK
+        run: |
+          mkdir -p "$HOME/theos/sdks"
+          SDK="${{ github.event.inputs.sdk || '16.5' }}"
+          curl -fsSL -o /tmp/sdk.tar.xz \
+            "https://github.com/theos/sdks/releases/download/master-146e41f/iPhoneOS${SDK}.sdk.tar.xz"
+          tar -xf /tmp/sdk.tar.xz -C "$HOME/theos/sdks"
+
+      - name: Build package
+        env:
+          THEOS: ${{ github.workspace }}/../theos
+        run: |
+          export THEOS="$HOME/theos"
+          export PATH="$THEOS/bin:$PATH"
+          make clean package FINALPACKAGE=1
+
+      - name: Upload deb
+        uses: actions/upload-artifact@v4
+        with:
+          name: CCAster-iOS15
+          path: packages/*.deb

@@ -1,0 +1,134 @@
+{
+  "minVersion": "0.1",
+  "class": "DepictionTabView",
+  "headerImage": "https://futur3sn0w.github.io/repo/banners/com.futur3sn0w.ccaster.png",
+  "tintColor": "#00C7BE",
+  "tabs": [
+    {
+      "tabname": "Details",
+      "class": "DepictionStackView",
+      "views": [
+                {
+                    "class": "DepictionMarkdownView",
+                    "markdown": "A modern, editable Control Center experience for iOS 16.\n\nArrange and resize controls on an 8x4 grid, add controls from CCAster's custom sheet, move between multiple pages, and reach editing and power actions from the Control Center header.",
+                    "useSpacing": true
+                },
+        {
+          "class": "DepictionSeparatorView"
+        },
+        {
+          "class": "DepictionHeaderView",
+          "title": "Package Info"
+        },
+        {
+          "class": "DepictionTableTextView",
+          "title": "Author",
+          "text": "Futur3Sn0w"
+        },
+        {
+                    "class": "DepictionTableTextView",
+                    "title": "Version",
+                    "text": "0.2.2"
+        },
+        {
+          "class": "DepictionTableTextView",
+          "title": "Requires",
+          "text": "iOS 16"
+        },
+        {
+          "class": "DepictionTableTextView",
+          "title": "Section",
+          "text": "Tweaks"
+        },
+        {
+          "class": "DepictionSeparatorView"
+        },
+        {
+          "class": "DepictionTableButtonView",
+          "title": "More by Futur3Sn0w",
+          "action": "https://futur3sn0w.github.io/repo",
+          "openExternal": true
+        }
+      ]
+    },
+    {
+      "tabname": "Changelog",
+            "class": "DepictionStackView",
+            "views": [
+                {
+                    "class": "DepictionSubheaderView",
+                    "title": "Version 0.2.2",
+                    "useBoldText": true,
+                    "useBottomMargin": false
+                },
+                {
+                    "class": "DepictionMarkdownView",
+                    "markdown": "• Added some layout fixes for larger device sizes",
+                    "useSpacing": false
+                },
+                {
+                    "class": "DepictionMarkdownView",
+                    "markdown": "• Home-button device layout improvements are planned for a future update",
+                    "useSpacing": false
+                },
+                {
+                    "class": "DepictionSeparatorView"
+                },
+                {
+                    "class": "DepictionSubheaderView",
+                    "title": "Version 0.2.1",
+                    "useBoldText": true,
+                    "useBottomMargin": false
+                },
+                {
+                    "class": "DepictionMarkdownView",
+                    "markdown": "• Fixed 3D-touch modules expanding while in edit mode",
+                    "useSpacing": false
+                },
+                {
+                    "class": "DepictionMarkdownView",
+                    "markdown": "• Fixed modules trying to fight dragging to move while in edit mode",
+                    "useSpacing": false
+                },
+                {
+                    "class": "DepictionSeparatorView"
+                },
+                {
+                    "class": "DepictionSubheaderView",
+                    "title": "Version 0.0.2-1 - Beta 1 Hotfix",
+          "useBoldText": true,
+          "useBottomMargin": false
+        },
+        {
+                    "class": "DepictionMarkdownView",
+          "markdown": "• Added arm64e support for newer devices",
+          "useSpacing": false
+        },
+        {
+          "class": "DepictionSeparatorView"
+        },
+        {
+          "class": "DepictionSubheaderView",
+          "title": "Version 0.0.2 - Beta 1",
+          "useBoldText": true,
+          "useBottomMargin": false
+        },
+        {
+                    "class": "DepictionMarkdownView",
+          "markdown": "• Added editable multi-page 8x4 Control Center layouts",
+          "useSpacing": false
+        },
+        {
+                    "class": "DepictionMarkdownView",
+          "markdown": "• Added CCAster's control sheet, module resizing, and Quick Access Buttons",
+          "useSpacing": false
+        },
+        {
+                    "class": "DepictionMarkdownView",
+          "markdown": "• Added an option to preserve saved pages while limiting Control Center to page one",
+          "useSpacing": false
+        }
+      ]
+    }
+  ]
+}

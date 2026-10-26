@@ -1,0 +1,7 @@
+.DS_Store
+.theos/
+packages/
+diagnostics/
+scripts/shots/
+*.deb
+*.dSYM/

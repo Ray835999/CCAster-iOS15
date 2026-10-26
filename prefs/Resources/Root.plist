@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>title</key><string>CCAster</string>
+<key>items</key><array>
+<dict><key>cell</key><string>PSGroupCell</string><key>footerText</key><string>Bring the modern Control Center experience to iOS 16. Changes are completely reversible and take effect after a respring.</string></dict>
+<dict><key>cell</key><string>PSSwitchCell</string><key>label</key><string>Enable CCAster</string><key>defaults</key><string>com.futur3sn0w.ccaster.preferences</string><key>key</key><string>Enabled</string><key>default</key><true/><key>set</key><string>setMasterEnabled:specifier:</string><key>PostNotification</key><string>com.futur3sn0w.ccaster/ReloadPrefs</string></dict>
+<dict><key>cell</key><string>PSGroupCell</string><key>label</key><string>Features</string></dict>
+<dict><key>cell</key><string>PSSwitchCell</string><key>label</key><string>Quick Access Buttons</string><key>defaults</key><string>com.futur3sn0w.ccaster.preferences</string><key>key</key><string>QuickAccessButtonsEnabled</string><key>default</key><true/><key>PostNotification</key><string>com.futur3sn0w.ccaster/ReloadPrefs</string></dict>
+<dict><key>cell</key><string>PSSwitchCell</string><key>label</key><string>Paging</string><key>defaults</key><string>com.futur3sn0w.ccaster.preferences</string><key>key</key><string>PagingEnabled</string><key>default</key><true/><key>PostNotification</key><string>com.futur3sn0w.ccaster/ReloadPrefs</string></dict>
+</array>
+</dict></plist>
