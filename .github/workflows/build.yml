@@ -32,7 +32,7 @@ jobs:
           cd /tmp/ldid
           make
           sudo cp ldid /usr/local/bin/
-          ldid --version
+          command -v ldid && echo "ldid ready"
 
       - name: Install Theos
         run: |
