@@ -29,6 +29,7 @@ static BOOL gRemovalButtonsEnabled = YES;
 static BOOL gModuleBordersEnabled = YES;
 static BOOL gBorderBreathingEnabled = YES;
 static BOOL gHapticsEnabled = YES;
+static BOOL gLiquidGlassEnabled = YES;
 static BOOL const gCCAUseNativeOpeningCompensation = NO;
 static CGFloat const kCCARestingModuleOffset = -8.0;
 static CGFloat const kCCAEditingModuleOffset = -48.0;
@@ -184,6 +185,7 @@ static NSInteger const kCCAExtendedHitBridgeTag = 181026;
 static NSInteger const kCCAAddControlButtonTag = 181027;
 static NSInteger const kCCASliderColorGlyphTag = 181028;
 static NSInteger const kCCASliderOutgoingGlyphTag = 181029;
+static NSInteger const kCCALiquidGlassTag = 181040;
 static NSInteger const kCCAPageIndicatorHostTag = 181030;
 static NSInteger const kCCATopFadeTag = 181031;
 static NSInteger const kCCAConnectivityMiniClusterTag = 181032;
@@ -522,6 +524,181 @@ static BOOL CCAViewTreeContainsClassName(UIView *root, NSString *className) {
         if (CCAViewTreeContainsClassName(subview, className)) return YES;
     }
     return NO;
+}
+
+// ---------- Liquid Glass (iOS 26-style glass surfaces) ----------
+// Approximates the iOS 26 "Liquid Glass" look on Control Center material
+// surfaces — both the module tiles and the full-screen CC backdrop.
+//
+// REPRODUCED HERE:
+//   * specular rim        - bright hairline stroke around the surface
+//   * glass thickness     - darker hairline just inside the rim
+//   * top sheen           - white gradient fading down from the top edge
+//   * bottom bounce light - faint white gradient rising from the bottom edge
+//   * squircle corners    - kCACornerCurveContinuous, radius scaled to size
+//   * lift shadow         - soft shadow so the glass reads as floating
+// NOT POSSIBLE ON iOS 15 (documented, not silently faked):
+//   * true refraction / lens displacement (needs the iOS 26 private shader)
+//   * tilt-driven dynamic highlights (no such material response on iOS 15)
+static char kCCAGlassOverlayKey;
+static NSString *const kCCAGlassDiagPath = @"/var/mobile/Library/Preferences/ccaster_glass_diag.txt";
+static NSInteger gCCAGlassSurfaceCount = 0;
+static NSInteger gCCAGlassEnterCount = 0;
+
+static void CCAGlassDiag(NSString *line) {
+    @try {
+        NSString *existing = [NSString stringWithContentsOfFile:kCCAGlassDiagPath
+                                                       encoding:NSUTF8StringEncoding
+                                                          error:nil] ?: @"";
+        NSString *next = existing.length ? [existing stringByAppendingFormat:@"\n%@", line] : line;
+        [next writeToFile:kCCAGlassDiagPath atomically:YES encoding:NSUTF8StringEncoding error:nil];
+    } @catch (__unused NSException *exception) {}
+}
+
+static BOOL CCAViewIsInControlCenter(UIView *view) {
+    UIView *candidate = view;
+    for (NSInteger depth = 0; candidate && depth < 32; depth++) {
+        NSString *name = NSStringFromClass(candidate.class);
+        if ([name containsString:@"ControlCenter"] || [name hasPrefix:@"CCUI"]) return YES;
+        candidate = candidate.superview;
+    }
+    return NO;
+}
+
+// Both module tiles (small surfaces inside a module container) and the
+// full-screen Control Center backdrop qualify.
+static BOOL CCAIsGlassSurfaceCandidate(UIView *view) {
+    if (!view || view.hidden || view.alpha <= 0.01f) return NO;
+    CGRect bounds = view.bounds;
+    if (CGRectGetWidth(bounds) < 24.0 || CGRectGetHeight(bounds) < 24.0) return NO;
+    return CCAViewIsInControlCenter(view);
+}
+
+// iOS 26 glass scales its corner radius with the surface size.
+static CGFloat CCAGlassCornerRadiusFor(UIView *view) {
+    CGFloat radius = view.layer.cornerRadius;
+    if (radius > 1.0) return radius;
+    CGFloat shortSide = MIN(CGRectGetWidth(view.bounds), CGRectGetHeight(view.bounds));
+    return MAX(10.0, MIN(shortSide * 0.30, 46.0));
+}
+
+static void CCALayoutGlassOverlay(UIView *overlay, UIView *material) {
+    if (!overlay || !material) return;
+    overlay.frame = material.frame;
+    CGFloat radius = CCAGlassCornerRadiusFor(material);
+    overlay.layer.cornerRadius = radius;
+    overlay.layer.cornerCurve = kCACornerCurveContinuous;
+    CGRect inner = overlay.bounds;
+    for (CALayer *layer in overlay.layer.sublayers) {
+        layer.frame = inner;
+        if (![layer isKindOfClass:[CAShapeLayer class]]) continue;
+        CAShapeLayer *shape = (CAShapeLayer *)layer;
+        CGFloat inset = shape.lineWidth * 0.5;
+        if ([shape.name isEqualToString:@"cca.glass.inner"]) inset = shape.lineWidth * 1.5;
+        UIBezierPath *path = [UIBezierPath bezierPathWithRoundedRect:CGRectInset(inner, inset, inset)
+                                                        cornerRadius:MAX(2.0, radius - inset)];
+        shape.path = path.CGPath;
+    }
+}
+
+static UIView *CCANewGlassOverlayForMaterial(UIView *material) {
+    CGFloat radius = CCAGlassCornerRadiusFor(material);
+    UIView *overlay = [[UIView alloc] initWithFrame:material.frame];
+    overlay.tag = kCCALiquidGlassTag;
+    overlay.userInteractionEnabled = NO;
+    overlay.backgroundColor = UIColor.clearColor;
+    overlay.opaque = NO;
+    overlay.autoresizingMask = material.autoresizingMask;
+    overlay.layer.cornerRadius = radius;
+    overlay.layer.cornerCurve = kCACornerCurveContinuous;
+    overlay.layer.masksToBounds = YES;
+
+    // 1) top sheen
+    CAGradientLayer *sheen = [CAGradientLayer layer];
+    sheen.name = @"cca.glass.sheen";
+    sheen.colors = @[(id)[UIColor.whiteColor colorWithAlphaComponent:0.30].CGColor,
+                     (id)[UIColor.whiteColor colorWithAlphaComponent:0.10].CGColor,
+                     (id)[UIColor.whiteColor colorWithAlphaComponent:0.0].CGColor];
+    sheen.locations = @[@0.0, @0.28, @0.62];
+    sheen.startPoint = CGPointMake(0.5, 0.0);
+    sheen.endPoint = CGPointMake(0.5, 1.0);
+    [overlay.layer addSublayer:sheen];
+
+    // 2) bottom bounce light
+    CAGradientLayer *bounce = [CAGradientLayer layer];
+    bounce.name = @"cca.glass.bounce";
+    bounce.colors = @[(id)[UIColor.whiteColor colorWithAlphaComponent:0.0].CGColor,
+                      (id)[UIColor.whiteColor colorWithAlphaComponent:0.05].CGColor,
+                      (id)[UIColor.whiteColor colorWithAlphaComponent:0.16].CGColor];
+    bounce.locations = @[@0.55, @0.82, @1.0];
+    bounce.startPoint = CGPointMake(0.5, 0.0);
+    bounce.endPoint = CGPointMake(0.5, 1.0);
+    [overlay.layer addSublayer:bounce];
+
+    // 3) specular rim
+    CAShapeLayer *rim = [CAShapeLayer layer];
+    rim.name = @"cca.glass.rim";
+    rim.lineWidth = 1.2;
+    rim.strokeColor = [UIColor.whiteColor colorWithAlphaComponent:0.42].CGColor;
+    rim.fillColor = UIColor.clearColor.CGColor;
+    [overlay.layer addSublayer:rim];
+
+    // 4) inner thickness stroke
+    CAShapeLayer *thickness = [CAShapeLayer layer];
+    thickness.name = @"cca.glass.inner";
+    thickness.lineWidth = 1.0;
+    thickness.strokeColor = [UIColor.blackColor colorWithAlphaComponent:0.20].CGColor;
+    thickness.fillColor = UIColor.clearColor.CGColor;
+    [overlay.layer addSublayer:thickness];
+
+    CCALayoutGlassOverlay(overlay, material);
+    return overlay;
+}
+
+// Idempotent: called on every layout pass, so it both installs and refreshes.
+static void CCASyncLiquidGlass(UIView *material) {
+    @try {
+        if (!material) return;
+        if (gCCAGlassEnterCount < 12) {
+            gCCAGlassEnterCount += 1;
+            CCAGlassDiag([NSString stringWithFormat:@"enter %@ inCC=%d size=%.0fx%.0f hidden=%d",
+                          NSStringFromClass(material.class), (int)CCAViewIsInControlCenter(material),
+                          CGRectGetWidth(material.bounds), CGRectGetHeight(material.bounds), (int)material.hidden]);
+        }
+        UIView *overlay = objc_getAssociatedObject(material, &kCCAGlassOverlayKey);
+        BOOL wanted = gEnabled && gLiquidGlassEnabled && CCAIsGlassSurfaceCandidate(material);
+        if (!wanted) {
+            if (overlay) {
+                [overlay removeFromSuperview];
+                objc_setAssociatedObject(material, &kCCAGlassOverlayKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+            }
+            return;
+        }
+        UIView *parent = material.superview;
+        if (!parent) return;
+        if (overlay) {
+            if (overlay.superview != parent) {
+                [overlay removeFromSuperview];
+                [parent insertSubview:overlay aboveSubview:material];
+            }
+            CCALayoutGlassOverlay(overlay, material);
+            overlay.hidden = material.hidden;
+            overlay.alpha = material.alpha;
+            return;
+        }
+        overlay = CCANewGlassOverlayForMaterial(material);
+        overlay.hidden = material.hidden;
+        overlay.alpha = material.alpha;
+        [parent insertSubview:overlay aboveSubview:material];
+        objc_setAssociatedObject(material, &kCCAGlassOverlayKey, overlay, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        if (gCCAGlassSurfaceCount < 40) {
+            gCCAGlassSurfaceCount += 1;
+            CCAGlassDiag([NSString stringWithFormat:@"glass added #%ld on %@ size=%.0fx%.0f r=%.1f parent=%@",
+                          (long)gCCAGlassSurfaceCount, NSStringFromClass(material.class),
+                          CGRectGetWidth(material.bounds), CGRectGetHeight(material.bounds),
+                          CCAGlassCornerRadiusFor(material), NSStringFromClass(parent.class)]);
+        }
+    } @catch (__unused NSException *exception) {}
 }
 
 static void CCASuppressNativeOverflowMaterialForOverlay(UIViewController *overlay) {
@@ -1346,6 +1523,7 @@ static void CCALoadPrefs(void) {
     gModuleBordersEnabled = CCAPreferenceBool(@"ModuleBordersEnabled", YES);
     gBorderBreathingEnabled = CCAPreferenceBool(@"BorderBreathingEnabled", YES);
     gHapticsEnabled = CCAPreferenceBool(@"HapticsEnabled", YES);
+    gLiquidGlassEnabled = CCAPreferenceBool(@"LiquidGlassEnabled", YES);
 }
 
 static BOOL CCAIsOverlayController(UIViewController *controller) {
@@ -9872,6 +10050,7 @@ static NSUInteger CCADerivedVisiblePageForOverlay(UIViewController *overlay) {
 
 - (void)didMoveToSuperview {
     %orig;
+    CCASyncLiquidGlass((UIView *)(id)self);
     if (!gEnabled) return;
     UIView *view = (UIView *)(id)self;
     UIView *parent = view.superview;
@@ -9889,6 +10068,7 @@ static NSUInteger CCADerivedVisiblePageForOverlay(UIViewController *overlay) {
 
 - (void)layoutSubviews {
     %orig;
+    CCASyncLiquidGlass((UIView *)(id)self);
     if (!gEnabled) return;
     UIView *view = (UIView *)(id)self;
     UIView *parent = view.superview;
