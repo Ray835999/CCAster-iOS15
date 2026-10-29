@@ -8,5 +8,7 @@
 <dict><key>cell</key><string>PSGroupCell</string><key>label</key><string>Features</string></dict>
 <dict><key>cell</key><string>PSSwitchCell</string><key>label</key><string>Quick Access Buttons</string><key>defaults</key><string>com.futur3sn0w.ccaster.preferences</string><key>key</key><string>QuickAccessButtonsEnabled</string><key>default</key><true/><key>PostNotification</key><string>com.futur3sn0w.ccaster/ReloadPrefs</string></dict>
 <dict><key>cell</key><string>PSSwitchCell</string><key>label</key><string>Paging</string><key>defaults</key><string>com.futur3sn0w.ccaster.preferences</string><key>key</key><string>PagingEnabled</string><key>default</key><true/><key>PostNotification</key><string>com.futur3sn0w.ccaster/ReloadPrefs</string></dict>
+<dict><key>cell</key><string>PSGroupCell</string><key>label</key><string>Appearance</string><key>footerText</key><string>Liquid Glass gives Control Center surfaces an iOS 26-style glass look: a specular rim, glass thickness, top sheen and squircle corners. True refraction is not possible on iOS 15, so this is a close visual approximation.</string></dict>
+<dict><key>cell</key><string>PSSwitchCell</string><key>label</key><string>Liquid Glass</string><key>defaults</key><string>com.futur3sn0w.ccaster.preferences</string><key>key</key><string>LiquidGlassEnabled</string><key>default</key><true/><key>PostNotification</key><string>com.futur3sn0w.ccaster/ReloadPrefs</string></dict>
 </array>
 </dict></plist>
